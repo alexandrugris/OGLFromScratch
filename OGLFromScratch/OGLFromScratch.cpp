@@ -5,8 +5,12 @@ using namespace std;
 using namespace glm;
 
 // window width and height
-float w;
-float h;
+float g_WindowWidth;
+float g_WindowHeight;
+
+mat4 g_ViewTransform(1.0f);
+mat4 g_ProjectionTransform(1.0f);
+bool g_RenderOrtho = false;
 
 class OGL3DObject {
 
@@ -104,7 +108,6 @@ public:
                 
                 if (*tok == '#') // comment
                     break;
-
                 if (_stricmp(tok, "v") == 0) {
                     type = 'v';
                 }
@@ -153,7 +156,6 @@ public:
                 cout << "Unknown line: " << line << endl;
                 break;
             }
-            
         }        
         _freea(ln);
 
@@ -223,7 +225,16 @@ public:
 
     }
 
+    virtual void Update(float dt) {
+        /*worldTransform[0][0] = 0;
+        worldTransform[0][2] = 0;
+        worldTransform[0][3] = 10;
+        worldTransform[0][3] = 1;*/
+    }
+
     virtual void Render(float dt, const mat4& viewTransform, const mat4& projectionTransform) {
+
+        Update(dt);
 
         SCOPED_APPLY(diffuseTexture);
         SCOPED_APPLY(program);
@@ -278,11 +289,16 @@ void setCullingAndWireframe(bool wireframe) {
     glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 }
 
-mat4 g_ViewTransform(1.0f);
-mat4 g_ProjectionTransform(1.0f);
 
 void update(float dt) {
-    g_ProjectionTransform = ortho(-w / h, w / h, -1.0f, 1.0f, -10.0f, 1000.0f);
+
+    if (g_RenderOrtho) {
+        g_ProjectionTransform = ortho(-g_WindowWidth / g_WindowHeight, g_WindowWidth / g_WindowHeight, -1.0f, 1.0f, -10.0f, 1000.0f);
+    }
+    else {
+        g_ProjectionTransform = perspective(radians(50.0f), g_WindowWidth / g_WindowHeight, 0.1f, 1000.0f);
+        g_ViewTransform = lookAt(vec3(0, 0, 2), vec3(0, 0, 0), vec3(0, 1, 0));
+    }
 }
 
 void render(float dt, bool wireframe=false) {
@@ -301,8 +317,8 @@ void render(float dt, bool wireframe=false) {
 
 void WindowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
-    w = float(width);
-    h = float(height);
+    g_WindowWidth = float(width);
+    g_WindowHeight = float(height);
 }
 
 
@@ -311,7 +327,7 @@ int main()
     if (!glfwInit())
         return EXIT_FAILURE;
 
-    GLFWwindow* window = glfwCreateWindow(int(w = 2048.0f), int(h = 1024.0f), "OGL From Scratch", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(int(g_WindowWidth = 2048.0f), int(g_WindowHeight = 1024.0f), "OGL From Scratch", NULL, NULL);
     if (!window) {
         fprintf(stderr, "ERROR: could not open window with GLFW3\n");
         glfwTerminate();
